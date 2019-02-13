@@ -37,13 +37,13 @@ p_dot = p_dot0
 p = p0
 
 # calculate path and trajectory
-tp.gettrajectoryDIV(T,ts)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.gettrajectoryDIV(T,ts)
 
 u = np.linspace(0, 35, num=int(T/ts)+1) # 9.81 * 1.2 * np.ones(int(T/ts)+1)
 tau = np.array([[0],[0],[0]])
 
 for i in range(1, int(T/ts+1)):
-    # dynamics symulation // _t means temporary
+    # dynamics symulation // _t means temporary // for now eta is not used
     R_previous = R[3*(i-1):3*(i-1)+3]
     p_2dot_t, eta, R_dot_t, omega_dot_t = dynamics.simulateDynamics(u[i-1], tau, R_previous, omega[i-1].reshape(3,1), m, J)
 
@@ -88,16 +88,13 @@ for i in range(1, int(T/ts+1)):
 # plt.plot(t, p[:,0]) # position at x axis
 # plt.plot(t, p[:,1]) # position at y axis
 
+plt.figure(5)
 plt.plot(t, p[:,2]) 
 plt.plot(t, p_dot[:,2])
 plt.plot(t, p_2dot[:,2])
 # plt.show(block=False)
 
-# plt.figure(2)
 # plt.plot(t, omega[:,0]) 
 # plt.plot(t, omega[:,1]) 
 # plt.plot(t, omega[:,2]) 
 plt.show()
-
-
-
