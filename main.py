@@ -1,5 +1,6 @@
 import numpy as np 
 from matplotlib import pyplot as plt 
+import trajectory_planner.main as tp
 import dynamics
 
 # time step, time of simulation and timevector
@@ -35,6 +36,9 @@ p_2dot = p_2dot0
 p_dot = p_dot0
 p = p0
 
+# calculate path and trajectory
+tp.gettrajectoryDIV(T,ts)
+
 u = np.linspace(0, 35, num=int(T/ts)+1) # 9.81 * 1.2 * np.ones(int(T/ts)+1)
 tau = np.array([[0],[0],[0]])
 
@@ -44,40 +48,32 @@ for i in range(1, int(T/ts+1)):
     p_2dot_t, eta, R_dot_t, omega_dot_t = dynamics.simulateDynamics(u[i-1], tau, R_previous, omega[i-1].reshape(3,1), m, J)
 
     ## displacement, velocity, acceleration
-    # collecting values
+    # stack acceleration
     p_2dot = np.vstack((p_2dot, p_2dot_t.reshape(1,3)))
 
-    # integration of acceleration, i.e get velocity
+    # integration of acceleration, i.e get velocity; stack velocity
     p_dot_t = p_dot[i-1] + np.trapz(np.array([p_2dot[i-1],p_2dot[i]]), dx=0.1, axis = 0)
-
-    # collecting values
     p_dot = np.vstack((p_dot, p_dot_t))
 
-    # integration of velocity, i.e get position
+    # integration of velocity, i.e get position; stack position
     p_t = p[i-1] + np.trapz(np.array([p_dot[i-1],p_dot[i]]), dx=0.1, axis = 0)
-
-    # collecting values
     p = np.vstack((p, p_t))
 
     ## omega
-    # collecting omega_dot
+    # stack omega_dot
     omega_dot = np.vstack((omega_dot, omega_dot_t.reshape(1,3).squeeze()))
 
-    #integration of omega_dot, i.e. get omega
+    # integration of omega_dot, i.e. get omega; stack omega
     omega_t = omega[i-1] + np.trapz(np.array([omega_dot[i-1],omega_dot[i]]), dx=0.1, axis = 0)
-
-    # collecting omega
     omega = np.vstack((omega, omega_t))
 
     ## R
-    #collecting R_dot
+    # stack R_dot
     R_dot = np.vstack((R_dot, np.array(R_dot_t)))
 
-    #integration of R_dot, i.e. get R
+    #integration of R_dot, i.e. get R; stack R
     R_t = R[3*(i-1):3*(i-1)+3].reshape(9) + np.trapz(np.array([R_dot[3*(i-1):3*(i-1)+3].reshape(9), R_dot[3*i:3*i+3].reshape(9)]), dx=0.1, axis = 0)
     R_t = R_t.reshape(3,3)
-
-    #collecting R
     R = np.vstack((R, np.array(R_t)))
     
 

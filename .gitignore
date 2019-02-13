@@ -1,2 +1,7 @@
 .vscode/settings.json
 __pycache__/dynamics.cpython-36.pyc
+trajectory_planner/__pycache__/trajectoryplanner.cpython-36.pyc
+trajectory_planner/__pycache__/RRT.cpython-36.pyc
+trajectory_planner/__pycache__/interpolation.cpython-36.pyc
+trajectory_planner/__pycache__/main.cpython-36.pyc
+__pycache__/main.cpython-36.pyc
