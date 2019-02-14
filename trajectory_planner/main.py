@@ -29,9 +29,9 @@ def gettrajectoryXYZ(T, ts):
 
 def gettrajectoryDIV(T, ts):
 
-    x, y, z, yaw = do_RRT(T,ts)
+    # x, y, z, yaw = do_RRT(T,ts)
     ## in case of step; make sure that init_p == (0,0) and init_p_z == 0
-    # x, y, z, yaw = do_step(T,ts)
+    x, y, z, yaw = do_step(T,ts)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
@@ -121,7 +121,7 @@ def repack(x,y,z):
     p_3dot = np.vstack([np.vstack([x[3,:], y[3,:]]), z[3,:]])
     p_4dot = np.vstack([np.vstack([x[4,:], y[4,:]]), z[4,:]])
 
-    return p, p_dot, p_2dot, p_3dot, p_4dot
+    return np.transpose(p), np.transpose(p_dot), np.transpose(p_2dot), np.transpose(p_3dot), np.transpose(p_4dot)
 
 if __name__ == "__main":
     gettrajectoryXYZ(10, 0.1)

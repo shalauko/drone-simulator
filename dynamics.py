@@ -4,6 +4,9 @@ import sys
 def simulateDynamics(u, tau, R, omega, m, J, g=9.81, \
     tau_ext=np.zeros(3).reshape(3,1), f_ext=np.zeros(3).reshape(3,1)):
 
+    tau = tau.reshape(3,1)
+    omega = omega.reshape(3,1)
+
     # temporary helped vulues
     e3 = np.array([0,0,1]).reshape(3,1)
     skew_omega = np.array([[0, -omega[2], omega[1]], [omega[2], 0, -omega[0]], [-omega[1], omega[0], 0]])
