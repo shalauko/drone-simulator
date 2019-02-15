@@ -9,15 +9,15 @@ from trajectory_planner.trajectoryplanner import trajectory, yawtrajectory
 stab_time = 3
 
 init_p = Point(0,0)
-goal_p = Point(6,6)
+goal_p = Point(15,15)
 init_p_z = 0
 goal_p_z = 1
-size_of_map = Point(10,10)
+size_of_map = Point(20,20)
 max_length = 0.5
 max_steps = 2000
 
 init_psi = 0
-goal_psi = -np.pi/4
+goal_psi = 0
 
 def gettrajectoryXYZ(T, ts):
 
@@ -29,9 +29,9 @@ def gettrajectoryXYZ(T, ts):
 
 def gettrajectoryDIV(T, ts):
 
-    # x, y, z, yaw = do_RRT(T,ts)
+    x, y, z, yaw = do_RRT(T,ts)
     ## in case of step; make sure that init_p == (0,0) and init_p_z == 0
-    x, y, z, yaw = do_step(T,ts)
+    # x, y, z, yaw = do_step(T,ts)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
@@ -71,6 +71,12 @@ def do_step(T,ts):
     trajectory_z = trajectory(time, np.ones_like(time), init_p_z)
     trajectory_psi = yawtrajectory(time, np.ones_like(time), init_psi)
 
+    # step only on z axis
+    # trajectory_x = trajectory(time, np.zeros_like(time), init_p.x) 
+    # trajectory_y = trajectory(time, np.zeros_like(time), init_p.y)
+    # trajectory_z = trajectory(time, np.ones_like(time), init_p_z)
+    # trajectory_psi = yawtrajectory(time, np.zeros_like(time), init_psi)
+
     plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi)
 
     return trajectory_x, trajectory_y, trajectory_z, trajectory_psi
@@ -80,11 +86,13 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
 
     plt.ioff()
     plt.figure(1)
+    plt.title("Rapidly-exploring random tree with desired trajectory")
     plt.axis([0, size_of_map.x, 0, size_of_map.y])
     plt.plot(trajectory_x[0,:],trajectory_y[0,:], 'm')
     plt.show(block=False)
 
     plt.figure(101)
+    plt.title("desired trajectory for x")
     plt.plot(time, trajectory_x[0,:])
     plt.plot(time, trajectory_x[1,:])
     plt.plot(time, trajectory_x[2,:])
@@ -93,6 +101,7 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
     plt.show(block=False)
 
     plt.figure(102)
+    plt.title("desired trajectory for y")
     plt.plot(time, trajectory_y[0,:])
     plt.plot(time, trajectory_y[1,:])
     plt.plot(time, trajectory_y[2,:])
@@ -101,6 +110,7 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
     plt.show(block=False)
 
     plt.figure(104)
+    plt.title("desired trajectory for z")
     plt.plot(time, trajectory_z[0,:])
     plt.plot(time, trajectory_z[1,:])
     plt.plot(time, trajectory_z[2,:])
@@ -109,6 +119,7 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
     plt.show(block=False)
 
     plt.figure(105)
+    plt.title("desired trajectory for yaw")
     plt.plot(time, trajectory_psi[0,:])
     plt.plot(time, trajectory_psi[1,:])
     plt.plot(time, trajectory_psi[2,:])

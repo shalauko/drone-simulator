@@ -13,9 +13,8 @@ def simulateDynamics(u, tau, R, omega, m, J, g=9.81, \
 
     # dynamics equations
     p_2dot = g*e3 + (1/m)*(np.matmul((-u*R),e3) + f_ext)
-        # simplify omega_dot = inv(J)*(-skew_omega*J*omega + tau + tau_ext)
-    omega_dot = np.matmul(np.linalg.inv(J),(np.matmul(np.matmul((-1)*skew_omega,J),omega) + tau + tau_ext))
-    R_dot = np.matmul(R,skew_omega)
+    omega_dot = np.linalg.inv(J) @ ((-1)*skew_omega @ J @ omega + tau + tau_ext)
+    R_dot = R @ skew_omega
 
     # construct Euler angles
     phi = np.arctan2(R[2][1],R[2][2])

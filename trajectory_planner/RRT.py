@@ -10,6 +10,7 @@ class Point:
 def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
 
     plt.figure()
+    plt.title("Rapidly-exploring random tree")
     plt.scatter(init_p.x, init_p.y)
     plt.scatter(goal_p.x, goal_p.y, c='r')
     plt.axis([0, size_of_map.x, 0, size_of_map.y])
@@ -42,7 +43,7 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
         tree = np.vstack((tree, [i,nr_of_parent, next_vertex.x, next_vertex.y]))
 
         if i%100 == 0:
-            print(f"Already {i} iterations are done")
+            print(f"{i} iterations are done already ")
 
         plt.plot([tree[nr_of_parent,2],tree[i,2]],[tree[nr_of_parent,3],tree[i,3]], 'b')
         plt.pause(0.005)
@@ -52,7 +53,7 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
             tree = np.vstack((tree, [i+1,i, goal_p.x, goal_p.y]))
             break
     else:
-        print ("Path weren't be foud. I'm sorry man :( ")
+        print ("Path is not found. I'm sorry man :( ")
         return [],[]
 
     final_tree=np.array([tree[-1]])
@@ -68,7 +69,7 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
     tree_x = final_tree[:,2]
     tree_y = final_tree[:,3]
 
-    print('We are home :)')
+    print('Path is found :)')
     plt.show(block=False)
     
     return tree_x, tree_y

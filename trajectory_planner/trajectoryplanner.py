@@ -30,7 +30,7 @@ def trajectory(time, ref_array, init_p):
 
     # snap; but it's shifted on 1 point forward 
     p_4dot = np.matmul(-B_p_new,yout-x_ref)
-    # adding initial snap == 0 and cuttin last point    
+    # adding initial snap == 0 and cutting last point    
     x = np.vstack([yout, np.insert(p_4dot[3,0:-1], 0, 0)])
 
     return x

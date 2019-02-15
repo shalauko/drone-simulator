@@ -5,8 +5,8 @@ import dynamics
 from gtcontroller import gt_controller as gt
 
 # time step, time of simulation and timevector
-ts = 0.1
-T = 10
+ts = 0.01
+T = 100
 t = np.linspace(0, T, num=int(T/ts)+1)
 
 # parameters of drone and gravity
@@ -20,101 +20,103 @@ Kv = 0.8
 K_R = 1
 K_omega = 1
 
-# initial conditions
-R0 = np.eye(3)
-R_dot0 = np.zeros(9).reshape(3,3)
+# initial conditions as firsts values in output arrays
+R = np.eye(3)
+R_dot = np.zeros(9).reshape(3,3)
 
-omega0 = np.array([np.zeros(3)])        # that view of array we need for use vstack and iteration
-omega_dot0 = np.array([np.zeros(3)])
+omega = np.array([np.zeros(3)])
+omega_dot = np.array([np.zeros(3)])
 
-eta0 = np.zeros(3).reshape(3,1)
+eta = np.zeros(3).reshape(3,1)              # not used in calculations - only for stats
 
-p_2dot0 = np.array([np.zeros(3)])
-p_dot0 = np.array([np.zeros(3)])        # that view of array we need for use vstack and iteration
-p0 = np.array([np.zeros(3)])            # that view of array we need for use vstack and iteration
+p_2dot = np.array([np.zeros(3)])
+p_dot = np.array([np.zeros(3)]) 
+p = np.array([np.zeros(3)]) 
 
-# construct output values
-R = R0
-R_dot = R_dot0
-
-omega = omega0
-omega_dot = omega_dot0
-
-p_2dot = p_2dot0
-p_dot = p_dot0
-p = p0
-
-# calculate path and trajectory
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.gettrajectoryDIV(T,ts)
-
-u = np.linspace(0, 35, num=int(T/ts)+1) # 9.81 * 1.2 * np.ones(int(T/ts)+1)
+u = np.array([0])
 tau = np.array([0,0,0])
 
-for i in range(0, int(T/ts)):
-    # dynamics symulation // _t means temporary // for now eta is not used
-    # print('p', p[i-1], 'p_dot', p_dot[i-1])
-    # print('p_d', p_d[i-1], 'p_d_dot', p_d_dot[i-1], 'p_d_2dot', p_d_2dot[i-1], 'p_d_3dot', p_d_3dot[i-1], 'p_d_4dot', p_d_4dot[i-1])
-    R_now = R[3*i:3*i+3]
+print("Trajectory calculations...")
+# calculate path and trajectory
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.gettrajectoryDIV(T,ts)
+print("Trajectory is found...")
 
+print("Simulation...")
+for i in range(0, int(T/ts)):
+
+    R_now = R[3*i:3*i+3]
+    omega_now = omega[i]
+
+    # geometric tracking controller
     u_now, tau_now = gt(p[i], p_dot[i], p_d[i], \
         p_d_dot[i], p_d_2dot[i], p_d_3dot[i], p_d_4dot[i], \
         psi_d[i], psi_d_dot[i], psi_d_2dot[i], \
-        omega[i], R_now, m, J, g, Kp, Kv, K_R, K_omega)
+        omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega)
 
     u = np.append(u,u_now)
     tau = np.vstack([tau,tau_now])
 
-    # dynamics symulation // _t means temporary // for now eta is not used
-    p_2dot_t, eta, R_dot_t, omega_dot_t = dynamics.simulateDynamics(u_now, tau_now, R_now, omega[i], m, J)
+    # dynamics symulation // camputating values in next step // for now eta is not used
+    p_2dot_next, eta, R_dot_next, omega_dot_next = dynamics.simulateDynamics(u_now, tau_now, R_now, omega_now, m, J)
 
     ## displacement, velocity, acceleration
     # stack acceleration
-    p_2dot = np.vstack((p_2dot, p_2dot_t.reshape(1,3)))
+    p_2dot = np.vstack((p_2dot, p_2dot_next.reshape(1,3)))
 
     # integration of acceleration, i.e get velocity; stack velocity
-    p_dot_t = p_dot[i] + np.trapz(np.array([p_2dot[i],p_2dot[i+1]]), dx=0.1, axis = 0)
-    p_dot = np.vstack((p_dot, p_dot_t))
+    p_dot_next = p_dot[i] + np.trapz(np.array([p_2dot[i],p_2dot[i+1]]), dx=ts, axis = 0)
+    p_dot = np.vstack((p_dot, p_dot_next))
 
     # integration of velocity, i.e get position; stack position
-    p_t = p[i] + np.trapz(np.array([p_dot[i],p_dot[i+1]]), dx=0.1, axis = 0)
-    p = np.vstack((p, p_t))
+    p_next = p[i] + np.trapz(np.array([p_dot[i],p_dot[i+1]]), dx=ts, axis = 0)
+    p = np.vstack((p, p_next))
 
     ## omega
     # stack omega_dot
-    omega_dot = np.vstack((omega_dot, omega_dot_t.reshape(1,3).squeeze()))
+    omega_dot = np.vstack((omega_dot, omega_dot_next.reshape(1,3).squeeze()))
 
     # integration of omega_dot, i.e. get omega; stack omega
-    omega_t = omega[i] + np.trapz(np.array([omega_dot[i],omega_dot[i+1]]), dx=0.1, axis = 0)
-    omega = np.vstack((omega, omega_t))
+    omega_next = omega[i] + np.trapz(np.array([omega_dot[i],omega_dot[i+1]]), dx=ts, axis = 0)
+    omega = np.vstack((omega, omega_next))
 
     ## R
     # stack R_dot
-    R_dot = np.vstack((R_dot, np.array(R_dot_t)))
+    R_dot = np.vstack((R_dot, np.array(R_dot_next)))
 
     #integration of R_dot, i.e. get R; stack R
-    R_t = R[3*i:3*i+3].reshape(9) + np.trapz(np.array([R_dot[3*i:3*i+3].reshape(9), R_dot[3*(i+1):3*(i+1)+3].reshape(9)]), dx=0.1, axis = 0)
-    R_t = R_t.reshape(3,3)
-    R = np.vstack((R, np.array(R_t)))
+    R_next = R[3*i:3*i+3].reshape(9) + np.trapz(np.array([R_dot[3*i:3*i+3].reshape(9), R_dot[3*(i+1):3*(i+1)+3].reshape(9)]), dx=ts, axis = 0)
+    R_next = R_next.reshape(3,3)
+    R = np.vstack((R, np.array(R_next)))
     
+# p_RMS = np.sqrt(np.square(p_d) - np.square(p))
+# print(len(np.square(p_d)), len(np.square(p)))
 
-# print("p \n", p)
-# print("p_dot \n", p_dot)
-# print("p_2dot \n", p_2dot)
-# print(eta)
-# print("R_dot \n", R_dot)
-# print("R \n", R)
-# print("omega_dot \n", omega_dot)
-# print("omega \n", omega)
-# plt.plot(t, p[:,0]) # position at x axis
-# plt.plot(t, p[:,1]) # position at y axis
+plt.figure(1)
+plt.plot(p[:,0],p[:,1], '-y')
 
 plt.figure(5)
-plt.plot(t, p[:,2]) 
-plt.plot(t, p_dot[:,2])
-plt.plot(t, p_2dot[:,2])
-# plt.show(block=False)
+plt.title('position')
+plt.plot(t, p[:,0], 'b') 
+plt.plot(t, p[:,1], 'g')
+plt.plot(t, p[:,2], 'r')
 
-# plt.plot(t, omega[:,0]) 
-# plt.plot(t, omega[:,1]) 
-# plt.plot(t, omega[:,2]) 
+plt.figure(6)
+plt.title('angle velocity')
+plt.plot(t, omega[:,0],'b') 
+plt.plot(t, omega[:,1],'g')
+plt.plot(t, omega[:,2],'r')
+
+plt.figure(7)
+plt.title('steering torque')
+plt.plot(t, tau[:,0], 'b')
+plt.plot(t, tau[:,1], 'g')
+plt.plot(t, tau[:,2], 'r')
+
+plt.figure(8)
+plt.title('thrust')
+plt.plot(t, u, 'b')
+
+# plt.figure(9)
+# plt.plot(t, p_RMS[:,0], 'b')
+ 
 plt.show()
