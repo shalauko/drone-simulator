@@ -38,7 +38,8 @@ tau = np.array([0,0,0])
 
 print("Trajectory calculations...")
 # calculate path and trajectory
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.gettrajectoryDIV(T,ts)
+# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'path.csv', plot=False)
 print("Trajectory is found...")
 
 print("Simulation...")
@@ -92,6 +93,7 @@ for i in range(0, int(T/ts)):
 # print(len(np.square(p_d)), len(np.square(p)))
 
 plt.figure(1)
+plt.title('Executed trajectory')
 plt.plot(p[:,0],p[:,1], '-y')
 
 plt.figure(5)

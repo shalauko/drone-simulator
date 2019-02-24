@@ -1,5 +1,7 @@
 import numpy as np
 import sys
+import csv
+from time import gmtime, strftime
 from matplotlib import pyplot as plt
 from trajectory_planner.RRT import Point, find_path
 from trajectory_planner.interpolation import interpolate
@@ -19,26 +21,7 @@ max_steps = 2000
 init_psi = 0
 goal_psi = 0
 
-def gettrajectoryXYZ(T, ts):
-
-    x, y, z, psi = do_RRT(T,ts)
-    ## in case of step; make sure that init_p == (0,0) and init_p_z == 0
-    # x, y, z, psi = do_step(T,ts)
-
-    return x, y, z, psi
-
-def gettrajectoryDIV(T, ts):
-
-    x, y, z, yaw = do_RRT(T,ts)
-    ## in case of step; make sure that init_p == (0,0) and init_p_z == 0
-    # x, y, z, yaw = do_step(T,ts)
-
-    p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
-    psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
-
-    return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
-
-def do_RRT(T,ts):
+def getTrajectoryFromRRT(T,ts, savePath=True, plotTrajectories=True):
     time = np.linspace(0, T, T/ts+1)
 
     tree_x, tree_y = find_path(init_p, goal_p, size_of_map, max_length, max_steps)
@@ -53,33 +36,63 @@ def do_RRT(T,ts):
     interp_z = interpolate(time, z, stab_time=stab_time)
     interp_psi = interpolate(time, psi, stab_time=stab_time)
     
+    if savePath == True : writeToCSV(interp_x, interp_y, interp_z, interp_psi)
 
-    trajectory_x = trajectory(time, interp_x, init_p.x)
-    trajectory_y = trajectory(time, interp_y, init_p.y)
-    trajectory_z = trajectory(time, interp_z, init_p_z)
-    trajectory_psi = yawtrajectory(time, interp_psi, init_psi)
+    x = trajectory(time, interp_x, init_p.x)
+    y = trajectory(time, interp_y, init_p.y)
+    z = trajectory(time, interp_z, init_p_z)
+    yaw = yawtrajectory(time, interp_psi, init_psi)
+    
+    if plotTrajectories==True : plottrajectories(T,ts, x, y, z, yaw)
 
-    plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi)
+    p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
+    psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
-    return trajectory_x, trajectory_y, trajectory_z, trajectory_psi
+    return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def do_step(T,ts):
+def getTrajectoryFromFile(T, ts, filename, plot=True):
     time = np.linspace(0, T, T/ts+1)
 
-    trajectory_x = trajectory(time, np.ones_like(time), init_p.x) 
-    trajectory_y = trajectory(time, np.ones_like(time), init_p.y)
-    trajectory_z = trajectory(time, np.ones_like(time), init_p_z)
-    trajectory_psi = yawtrajectory(time, np.ones_like(time), init_psi)
+    data = np.loadtxt(filename, delimiter=',')
+    x_path = data[:,0]
+    y_path = data[:,1]
+    z_path = data[:,2]
+    yaw_path = data[:,3]
 
-    # step only on z axis
-    # trajectory_x = trajectory(time, np.zeros_like(time), init_p.x) 
-    # trajectory_y = trajectory(time, np.zeros_like(time), init_p.y)
-    # trajectory_z = trajectory(time, np.ones_like(time), init_p_z)
-    # trajectory_psi = yawtrajectory(time, np.zeros_like(time), init_psi)
+    x = trajectory(time, x_path, x_path[0])
+    y = trajectory(time, y_path, y_path[0])
+    z = trajectory(time, z_path, z_path[0])
+    yaw = yawtrajectory(time, yaw_path, yaw_path[0])
+    
+    if plot==True:
+        plt.figure(1)
+        plt.title("Loaded path")
+        plt.scatter(x_path[0], y_path[0])
+        plt.scatter(x_path[-1], x_path[-1], c='r')
+        plt.plot(x_path,y_path)
+        plt.show(block=False)
 
-    plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi)
+        plottrajectories(T,ts, x, y, z, yaw)
 
-    return trajectory_x, trajectory_y, trajectory_z, trajectory_psi
+    p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
+    psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
+
+    return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
+
+def getTrajectoryFromStep(T,ts):
+    time = np.linspace(0, T, T/ts+1)
+
+    x = trajectory(time, np.ones_like(time), init_p.x) 
+    y = trajectory(time, np.ones_like(time), init_p.y)
+    z = trajectory(time, np.ones_like(time), init_p_z)
+    yaw = yawtrajectory(time, np.ones_like(time), init_psi)
+
+    plottrajectories(T,ts, x, y, z, yaw)
+
+    p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
+    psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
+
+    return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
 def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi):
     time = np.linspace(0, T, T/ts+1)
@@ -134,5 +147,9 @@ def repack(x,y,z):
 
     return np.transpose(p), np.transpose(p_dot), np.transpose(p_2dot), np.transpose(p_3dot), np.transpose(p_4dot)
 
+def writeToCSV(x, y, z, yaw):
+    filename = strftime("%Y-%m-%d_%H:%M:%S.csv", gmtime())
+    np.savetxt(filename, np.transpose([x,y,z, yaw]), fmt='%1.8e', delimiter=',')
+
 if __name__ == "__main":
-    gettrajectoryXYZ(10, 0.1)
+    getTrajectoryFromRRT(10, 0.1)
