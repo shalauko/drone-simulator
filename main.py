@@ -6,7 +6,7 @@ from gtcontroller import gt_controller as gt
 
 # time step, time of simulation and timevector
 ts = 0.01
-T = 10
+T = 50
 t = np.linspace(0, T, num=int(T/ts)+1)
 
 # parameters of drone and gravity
@@ -39,7 +39,7 @@ tau = np.array([0,0,0])
 print("Trajectory calculations...")
 # calculate path and trajectory // uncomment one of three options
 # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts)
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, save=False, plots=False)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, save=True, plots=True)
     # as arguments are time of simulation, time step, name of file and optional boolean ploting
 # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(100, 0.01, '20190225_121043.csv', plots=False)
 

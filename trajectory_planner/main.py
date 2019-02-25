@@ -36,7 +36,7 @@ def getTrajectoryFromRRT(T,ts, save=True, plots=True):
     interp_z = interpolate(time, z, stab_time=stab_time)
     interp_psi = interpolate(time, psi, stab_time=stab_time)
     
-    if save == True : writeToCSV(interp_x, interp_y, interp_z, interp_psi)
+    if save == True : writeToCSV(interp_x, interp_y, interp_z, interp_psi, T, ts)
 
     x = trajectory(time, interp_x, init_p.x)
     y = trajectory(time, interp_y, init_p.y)
@@ -147,8 +147,8 @@ def repack(x,y,z):
 
     return np.transpose(p), np.transpose(p_dot), np.transpose(p_2dot), np.transpose(p_3dot), np.transpose(p_4dot)
 
-def writeToCSV(x, y, z, yaw):
-    filename = strftime("%Y%m%d_%H%M%S.csv", gmtime())
+def writeToCSV(x, y, z, yaw, T, ts):
+    filename = strftime("%Y%m%d_%H%M%S", gmtime()) + "_T" + str(T) + "ts" + str(ts).replace('.', '_') + ".csv"
     np.savetxt(filename, np.transpose([x,y,z, yaw]), fmt='%1.8e', delimiter=',')
 
 if __name__ == "__main":
