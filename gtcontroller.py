@@ -38,8 +38,8 @@ def gt_controller(p, p_dot, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, \
     omega_d = np.zeros(3).reshape(3,1)
     omega_d_dot = np.zeros(3).reshape(3,1)
 
-    t3 = (R_d.transpose() @ R - R.transpose() @ R_d)
-    t3_vec = np.array([t3[2,1], t3[0,2], t3[1,0]]).reshape(3,1)
+    t3 = (R_d.transpose() @ R - R.transpose() @ R_d)                # temporary
+    t3_vec = np.array([t3[2,1], t3[0,2], t3[1,0]]).reshape(3,1)     # temporary
     e_R = 0.5 * t3_vec
 
     e_omega = omega - R.transpose() @ R_d @ omega_d

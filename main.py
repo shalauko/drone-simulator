@@ -6,7 +6,7 @@ from gtcontroller import gt_controller as gt
 
 # time step, time of simulation and timevector
 ts = 0.01
-T = 100
+T = 10
 t = np.linspace(0, T, num=int(T/ts)+1)
 
 # parameters of drone and gravity
@@ -15,10 +15,10 @@ J = np.diag([0.015, 0.015, 0.026])
 g = 9.81
 
 # parameters of controller
-Kp = 0.5
-Kv = 0.8
-K_R = 1
-K_omega = 1
+Kp = 1
+Kv = 1.4*(4*Kp)**0.5
+K_R = 0.6
+K_omega = 0.2
 
 # initial conditions as firsts values in output arrays
 R = np.eye(3)
@@ -37,9 +37,12 @@ u = np.array([0])
 tau = np.array([0,0,0])
 
 print("Trajectory calculations...")
-# calculate path and trajectory
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts)
-# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'path.csv', plot=False)
+# calculate path and trajectory // uncomment one of three options
+# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, save=False, plots=False)
+    # as arguments are time of simulation, time step, name of file and optional boolean ploting
+# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(100, 0.01, '20190225_121043.csv', plots=False)
+
 print("Trajectory is found...")
 
 print("Simulation...")
@@ -57,7 +60,7 @@ for i in range(0, int(T/ts)):
     u = np.append(u,u_now)
     tau = np.vstack([tau,tau_now])
 
-    # dynamics symulation // camputating values in next step // for now eta is not used
+    # dynamics symulation // computating values for the next step // for now eta is not used
     p_2dot_next, eta, R_dot_next, omega_dot_next = dynamics.simulateDynamics(u_now, tau_now, R_now, omega_now, m, J)
 
     ## displacement, velocity, acceleration
@@ -89,12 +92,15 @@ for i in range(0, int(T/ts)):
     R_next = R_next.reshape(3,3)
     R = np.vstack((R, np.array(R_next)))
     
-# p_RMS = np.sqrt(np.square(p_d) - np.square(p))
-# print(len(np.square(p_d)), len(np.square(p)))
+# cheking quality
+p_error = np.sqrt(np.square(p_d - p))
+RMS = np.sqrt(np.sum(np.square(p_d - p))/len(p))
+print('RMS =', RMS)
 
-plt.figure(1)
-plt.title('Executed trajectory')
-plt.plot(p[:,0],p[:,1], '-y')
+## ploting    
+# plt.figure(1)
+# plt.title('Executed trajectory')
+# plt.plot(p[:,0],p[:,1], '-y')
 
 plt.figure(5)
 plt.title('position')
@@ -103,22 +109,32 @@ plt.plot(t, p[:,1], 'g')
 plt.plot(t, p[:,2], 'r')
 
 plt.figure(6)
-plt.title('angle velocity')
-plt.plot(t, omega[:,0],'b') 
-plt.plot(t, omega[:,1],'g')
-plt.plot(t, omega[:,2],'r')
+plt.title('velocity')
+plt.plot(t, np.sqrt(np.square(p_dot[:,0]) + np.square(p_dot[:,1]) + np.square(p_dot[:,2])), 'b') 
 
 plt.figure(7)
-plt.title('steering torque')
-plt.plot(t, tau[:,0], 'b')
-plt.plot(t, tau[:,1], 'g')
-plt.plot(t, tau[:,2], 'r')
+plt.title('acceleration')
+plt.plot(t, np.sqrt(np.square(p_2dot[:,0]) + np.square(p_2dot[:,1]) + np.square(p_2dot[:,2])), 'b') 
 
-plt.figure(8)
-plt.title('thrust')
-plt.plot(t, u, 'b')
+# plt.figure(7)
+# plt.title('angle velocity')
+# plt.plot(t, omega[:,0],'b') 
+# plt.plot(t, omega[:,1],'g')
+# plt.plot(t, omega[:,2],'r')
+
+# plt.figure(8)
+# plt.title('steering torque')
+# plt.plot(t, tau[:,0], 'b')
+# plt.plot(t, tau[:,1], 'g')
+# plt.plot(t, tau[:,2], 'r')
+
+# plt.figure(8)
+# plt.title('thrust')
+# plt.plot(t, u, 'b')
 
 # plt.figure(9)
-# plt.plot(t, p_RMS[:,0], 'b')
+# plt.plot(t, p_error[:,0], 'b')
+# plt.plot(t, p_error[:,1], 'g')
+# plt.plot(t, p_error[:,2], 'r')
  
 plt.show()

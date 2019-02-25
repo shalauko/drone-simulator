@@ -7,14 +7,15 @@ class Point:
         self.x = x
         self.y = y
 
-def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
+def find_path(init_p, goal_p, size_of_map, max_length, max_steps, plots=True):
 
-    plt.figure()
-    plt.title("Rapidly-exploring random tree")
-    plt.scatter(init_p.x, init_p.y)
-    plt.scatter(goal_p.x, goal_p.y, c='r')
-    plt.axis([0, size_of_map.x, 0, size_of_map.y])
-    plt.ion()
+    if plots == True:
+        plt.figure()
+        plt.title("Rapidly-exploring random tree")
+        plt.scatter(init_p.x, init_p.y)
+        plt.scatter(goal_p.x, goal_p.y, c='r')
+        plt.axis([0, size_of_map.x, 0, size_of_map.y])
+        plt.ion()
 
     tree = np.array([[0,0,init_p.x,init_p.y]])            # order: 0 - my number, 1 - my parent, 2 - my x, 3 - my y
     nr_of_parent = 0
@@ -23,7 +24,7 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
 
     for i in range(1,max_steps):
         shot = Point(size_of_map.x*np.random.rand(), size_of_map.y*np.random.rand())
-        dot = plt.scatter(shot.x, shot.y ,c='y')
+        if plots == True : dot = plt.scatter(shot.x, shot.y ,c='y')
 
         distance_to_parent = max_distance
         for k in range(len(tree)):
@@ -45,9 +46,11 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
         if i%100 == 0:
             print(f"{i} iterations are done already ")
 
-        plt.plot([tree[nr_of_parent,2],tree[i,2]],[tree[nr_of_parent,3],tree[i,3]], 'b')
-        plt.pause(0.005)
-        dot.remove()
+        if plots == True:
+            plt.plot([tree[nr_of_parent,2],tree[i,2]],[tree[nr_of_parent,3],tree[i,3]], 'b')
+            plt.pause(0.001)
+            dot.remove()
+
         distance_to_goal = np.sqrt((goal_p.x - next_vertex.x)**2 + (goal_p.y-next_vertex.y)**2)
         if distance_to_goal <= max_length:
             tree = np.vstack((tree, [i+1,i, goal_p.x, goal_p.y]))
@@ -61,7 +64,7 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
     for i in reversed(range(len(tree)-1)):
         if tree[i,0] == final_tree[n,1]:
             final_tree = np.vstack((final_tree, tree[i]))
-            plt.plot([final_tree[n,2],final_tree[n+1,2]],[final_tree[n,3],final_tree[n+1,3]], 'g')
+            if plots == True: plt.plot([final_tree[n,2],final_tree[n+1,2]],[final_tree[n,3],final_tree[n+1,3]], 'g')
             n = n + 1
     
 
@@ -70,6 +73,6 @@ def find_path(init_p, goal_p, size_of_map, max_length, max_steps):
     tree_y = final_tree[:,3]
 
     print('Path is found :)')
-    plt.show(block=False)
+    if plots == True: plt.show(block=False)
     
     return tree_x, tree_y
