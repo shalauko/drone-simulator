@@ -39,9 +39,9 @@ tau = np.array([0,0,0])
 print("Trajectory calculations...")
 # calculate path and trajectory // uncomment one of three options
 # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts)
-# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, save=True, plots=True)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, save=False, plots=True)
     # as arguments are time of simulation, time step, name of file and optional boolean ploting
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(50, 0.01, '20190225_230606_T50ts0_01.csv', plots=False)
+# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(10, 0.01, '20190226_010830_T10ts0_01.csv', plots=False)
 
 print("Trajectory is found...")
 
@@ -55,7 +55,7 @@ for i in range(0, int(T/ts)):
     u_now, tau_now = gt(p[i], p_dot[i], p_d[i], \
         p_d_dot[i], p_d_2dot[i], p_d_3dot[i], p_d_4dot[i], \
         psi_d[i], psi_d_dot[i], psi_d_2dot[i], \
-        omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=False)
+        omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=True)
 
     u = np.append(u,u_now)
     tau = np.vstack([tau,tau_now])
@@ -98,9 +98,9 @@ RMS = np.sqrt(np.sum(np.square(p_d - p))/len(p))
 print('RMS =', RMS)
 
 ## ploting    
-# plt.figure(1)
-# plt.title('Executed trajectory')
-# plt.plot(p[:,0],p[:,1], '-y')
+plt.figure(1)
+plt.title('Executed trajectory')
+plt.plot(p[:,0],p[:,1], '-y')
 
 plt.figure(5)
 plt.title('position')
@@ -132,9 +132,9 @@ plt.plot(t, np.sqrt(np.square(p_2dot[:,0]) + np.square(p_2dot[:,1]) + np.square(
 # plt.title('thrust')
 # plt.plot(t, u, 'b')
 
-# plt.figure(9)
-# plt.plot(t, p_error[:,0], 'b')
-# plt.plot(t, p_error[:,1], 'g')
-# plt.plot(t, p_error[:,2], 'r')
+plt.figure(9)
+plt.plot(t, p_error[:,0], 'b')
+plt.plot(t, p_error[:,1], 'g')
+plt.plot(t, p_error[:,2], 'r')
  
 plt.show()
