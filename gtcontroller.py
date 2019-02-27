@@ -12,6 +12,7 @@ def gt_controller(p, p_dot, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, \
     e_p = p - p_d
     e_p_dot = p_dot - p_d_dot
 
+
     x_c = np.array([np.cos(psi_d), np.sin(psi_d), 0])
 
     A = -Kp*e_p - Kv*e_p_dot - m*g*e3 + m*p_d_2dot                                  # temporary variable

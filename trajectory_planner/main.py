@@ -10,26 +10,23 @@ from trajectory_planner.trajectoryplanner import trajectory, yawtrajectory
 #time for stabilization at the end of trajectory
 stab_time = 3
 
-init_p = Point(0,0)
-goal_p = Point(15,15)
-init_p_z = 0
-goal_p_z = 1
 size_of_map = Point(20,20)
 max_length = 0.5
 max_steps = 2000
 
-init_psi = 0
-goal_psi = 0
 
-def getTrajectoryFromRRT(T,ts, save=True, plots=True):
+def getTrajectoryFromRRT(T,ts, init_point, goal_point, save=True, plots=True):
     time = np.linspace(0, T, T/ts+1)
+
+    init_p = Point(init_point[0],init_point[1]) #for RRT for x,y
+    goal_p = Point(goal_point[0],goal_point[1]) #for RRT for x,y
 
     tree_x, tree_y = find_path(init_p, goal_p, size_of_map, max_length, max_steps, plots=plots)
     if tree_x == [] or tree_y == []:
         sys.exit("Error in the RRT")
 
-    z = np.linspace(init_p_z,goal_p_z, num=len(time))
-    psi = np.linspace(init_psi,goal_psi, num=len(time))
+    z = np.linspace(init_point[2], goal_point[2], num=len(time))
+    psi = np.linspace(init_point[3], goal_point[3], num=len(time))
 
     interp_x = interpolate(time, tree_x, stab_time=stab_time)
     interp_y = interpolate(time, tree_y, stab_time=stab_time)
@@ -38,10 +35,10 @@ def getTrajectoryFromRRT(T,ts, save=True, plots=True):
     
     if save == True : writeToCSV(interp_x, interp_y, interp_z, interp_psi, T, ts)
 
-    x = trajectory(time, interp_x, init_p.x)
-    y = trajectory(time, interp_y, init_p.y)
-    z = trajectory(time, interp_z, init_p_z)
-    yaw = yawtrajectory(time, interp_psi, init_psi)
+    x = trajectory(time, interp_x, init_point[0])
+    y = trajectory(time, interp_y, init_point[1])
+    z = trajectory(time, interp_z, init_point[2])
+    yaw = yawtrajectory(time, interp_psi, init_point[3])
     
     if plots==True : plottrajectories(T,ts, x, y, z, yaw)
 
@@ -69,7 +66,7 @@ def getTrajectoryFromFile(T, ts, filename, plots=True):
         plt.title("Loaded path")
         plt.scatter(x_path[0], y_path[0])
         plt.scatter(x_path[-1], x_path[-1], c='r')
-        plt.plot(x_path,y_path)
+        plt.plot(x_path,y_path, c='b', label='desired path')
         plt.show(block=False)
 
         plottrajectories(T,ts, x, y, z, yaw)
@@ -79,15 +76,56 @@ def getTrajectoryFromFile(T, ts, filename, plots=True):
 
     return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def getTrajectoryFromStep(T,ts):
+def getTrajectoryFromStep(T,ts, init_point, plots=True):
     time = np.linspace(0, T, T/ts+1)
 
-    x = trajectory(time, np.ones_like(time), init_p.x) 
-    y = trajectory(time, np.ones_like(time), init_p.y)
-    z = trajectory(time, np.ones_like(time), init_p_z)
-    yaw = yawtrajectory(time, np.ones_like(time), init_psi)
+    # uncomment one of two parts below
+    ##########################################################################
+    # with trajectory planner, using linear filter
+    # x = trajectory(time, np.ones_like(time), init_point[0]) 
+    # y = trajectory(time, np.ones_like(time), init_point[1])
+    # z = trajectory(time, np.ones_like(time), init_point[2])
+    # yaw = yawtrajectory(time, np.ones_like(time), init_point[3])
 
-    plottrajectories(T,ts, x, y, z, yaw)
+    # if plots==True: plottrajectories(T,ts, x, y, z, yaw)
+
+    # p, p_dot, p_2dot, p_3dot, p_4dot = repack(x,y,z)
+    # psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
+
+    ##########################################################################
+    # without trajectory planning - just hard step function
+    p = np.array([np.ones_like(time),np.ones_like(time),np.ones_like(time)]).transpose()
+    p_dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
+    p_2dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
+    p_3dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
+    p_4dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
+    psi = np.ones_like(time)
+    psi_dot = np.zeros_like(time)
+    psi_2dot =np.zeros_like(time)
+
+    return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
+
+def getTrajectoryFromPoints(T, ts, points, plots=True):
+    time = np.linspace(0, T, T/ts+1)
+
+    interp_x = interpolate(time, points[0,:], stab_time=stab_time)
+    interp_y = interpolate(time, points[1,:], stab_time=stab_time)
+    interp_z = interpolate(time, points[2,:], stab_time=stab_time)
+    interp_psi = interpolate(time, points[3,:], stab_time=stab_time)
+
+    x = trajectory(time, interp_x, points[0,0])
+    y = trajectory(time, interp_y, points[1,0])
+    z = trajectory(time, interp_z, points[2,0])
+    yaw = yawtrajectory(time, interp_psi, points[3,0])
+    
+    if plots==True : 
+        plt.figure(1)
+        plt.title("Loaded path")
+        plt.scatter(points[0,-1], points[1,-1], c='r')
+        plt.scatter(points[0,0], points[1,0])
+        plt.plot(points[0],points[1], label='desired path')
+        plt.show(block=False)
+        plottrajectories(T,ts, x, y, z, yaw)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
@@ -99,43 +137,40 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
 
     plt.ioff()
     plt.figure(1)
-    plt.title("Rapidly-exploring random tree with desired trajectory")
+    plt.title("Desired trajectory")
     plt.axis([0, size_of_map.x, 0, size_of_map.y])
-    plt.plot(trajectory_x[0,:],trajectory_y[0,:], 'm')
+    plt.plot(trajectory_x[0,:],trajectory_y[0,:], 'm', label="filtered path")
     plt.show(block=False)
 
-    plt.figure(101)
+    fig = plt.figure(100)
+    plt.subplot(221)
     plt.title("desired trajectory for x")
-    plt.plot(time, trajectory_x[0,:])
-    plt.plot(time, trajectory_x[1,:])
-    plt.plot(time, trajectory_x[2,:])
-    plt.plot(time, trajectory_x[3,:])
-    plt.plot(time, trajectory_x[4,:])
-    plt.show(block=False)
-
-    plt.figure(102)
+    plt.plot(time, trajectory_x[0,:], label='position')
+    plt.plot(time, trajectory_x[1,:], label='velocity')
+    plt.plot(time, trajectory_x[2,:], label='acceleration')
+    plt.plot(time, trajectory_x[3,:], label='jerk')
+    plt.plot(time, trajectory_x[4,:], label='snap')
+    plt.subplot(222)
     plt.title("desired trajectory for y")
     plt.plot(time, trajectory_y[0,:])
     plt.plot(time, trajectory_y[1,:])
     plt.plot(time, trajectory_y[2,:])
     plt.plot(time, trajectory_y[3,:])
     plt.plot(time, trajectory_y[4,:])
-    plt.show(block=False)
-
-    plt.figure(104)
+    plt.subplot(223)
     plt.title("desired trajectory for z")
     plt.plot(time, trajectory_z[0,:])
     plt.plot(time, trajectory_z[1,:])
     plt.plot(time, trajectory_z[2,:])
     plt.plot(time, trajectory_z[3,:])
     plt.plot(time, trajectory_z[4,:])
-    plt.show(block=False)
-
-    plt.figure(105)
+    plt.subplot(224)
     plt.title("desired trajectory for yaw")
     plt.plot(time, trajectory_psi[0,:])
     plt.plot(time, trajectory_psi[1,:])
     plt.plot(time, trajectory_psi[2,:])
+    fig.legend(loc='upper left')
+    plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
     plt.show(block=False)
 
 def repack(x,y,z):
@@ -152,4 +187,4 @@ def writeToCSV(x, y, z, yaw, T, ts):
     np.savetxt(filename, np.transpose([x,y,z, yaw]), fmt='%1.8e', delimiter=',')
 
 if __name__ == "__main":
-    getTrajectoryFromRRT(10, 0.1)
+    getTrajectoryFromRRT(10, 0.1, np.array([0,0,0,0]), np.array([15,15,0,0]))

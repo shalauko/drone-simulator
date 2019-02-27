@@ -12,7 +12,7 @@ def simulateDynamics(u, tau, R, omega, m, J, g=9.81, \
     skew_omega = np.array([[0, -omega[2], omega[1]], [omega[2], 0, -omega[0]], [-omega[1], omega[0], 0]])
 
     # dynamics equations
-    p_2dot = g*e3 + (1/m)*(np.matmul((-u*R),e3) + f_ext)
+    p_2dot = g*e3 + (1/m)*(-u*R@e3 + f_ext)
     omega_dot = np.linalg.inv(J) @ ((-1)*skew_omega @ J @ omega + tau + tau_ext)
     R_dot = R @ skew_omega
 
