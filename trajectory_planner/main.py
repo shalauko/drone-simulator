@@ -8,7 +8,7 @@ from trajectory_planner.interpolation import interpolate
 from trajectory_planner.trajectoryplanner import trajectory, yawtrajectory
 
 #time for stabilization at the end of trajectory
-stab_time = 3
+stab_time = 4
 
 size_of_map = Point(20,20)
 max_length = 0.5
@@ -164,6 +164,7 @@ def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_
     plt.plot(time, trajectory_z[2,:])
     plt.plot(time, trajectory_z[3,:])
     plt.plot(time, trajectory_z[4,:])
+    plt.gca().invert_yaxis()
     plt.subplot(224)
     plt.title("desired trajectory for yaw")
     plt.plot(time, trajectory_psi[0,:])
