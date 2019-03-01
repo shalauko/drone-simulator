@@ -4,6 +4,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import trajectory_planner.main as tp
 import dynamics
 from gtcontroller import gt_controller as gt
+from nhcontroller import nh_controller as nh
+
+#############################################
+# which controller do you want to use (GT = 1 or NH = 2); set what do you want
+controller = 1
+if controller == 1: print('GEOMETRIC TRACKING CONTROLLER')
+elif controller == 2: print('NEAR-HOVERING CONTROLLER')
 
 #############################################
 # time step, time of simulation and timevector
@@ -18,69 +25,103 @@ J = np.diag([0.015, 0.015, 0.026])
 g = 9.81
 
 ##########################################
-#  parameters of controller
-Kp = 1
-Kv = 1.4*(4*Kp)**0.5
-K_R = 0.6
-K_omega = 0.2
+#  parameters of GT-controller
+if controller == 1:
+    Kp = 1
+    Kv = 1.4*(4*Kp)**0.5
+    K_R = 0.6
+    K_omega = 0.2
+
+###############################################
+# parameters of NH-controller
+elif controller == 2:
+    kp=1                                                               # P for PID // thrust ctrl
+    kd=1.4*np.sqrt(4*kp)                                               # D for PID // thrust ctrl
+    ki=1                                                               # I for PID (in fact is used only for z axis) // thrust ctrl
+    k_psi = kp                                                         # P in thrust controll
+    K_eta_dot = np.array([20, 50, 10]).reshape(3,1)                                  # D for RPY in torque controll 
+    K_eta = np.array([100, 150, 0]).reshape(3,1)                                              # P for PRY in torque controll //for yaw must be 0!
+
+    # bounding
+    max_pos_err_norm = 10
+    max_tilt    = 45/180 * np.pi
+
+    # initial value for position error and position error integral
+    e_p = np.array([np.zeros(3)])
+    e_I = np.array([np.zeros(3)])
 
 ######################################################
-# initial conditions as firsts values in output arrays
+# initial conditions as firsts values in output arrays; wired view of arrays demand stacking :)
 R = np.eye(3)
 R_dot = np.zeros(9).reshape(3,3)
 
 omega = np.array([np.zeros(3)])
 omega_dot = np.array([np.zeros(3)])
 
-eta = np.zeros(3)                     # not used in calculations - only for stats and plots
+eta = np.array([np.zeros(3)])
 
-p_2dot = np.zeros(3)
-p_dot = np.zeros(3)
-p = np.zeros(3)
+p_2dot = np.array([np.zeros(3)])
+p_dot = np.array([np.zeros(3)])
+p = np.array([np.zeros(3)])
 
-u = np.zeros(1)
-tau = np.zeros(3)
+u = np.array([np.zeros(1)])
+tau = np.array([np.zeros(3)])
 
 ######################################################
 # points in the space for path and trajectory planning
-init_point = np.array([p[0], p[1], p[2], eta[2]])         # init x, y, z, yaw
-goal_point = np.array([15, 15, -1, 1])                             # target x, y, z(directed down), yaw
+init_point = np.array([p[0,0], p[0,1], p[0,2], eta[0,2]])                       # init x, y, z, yaw
+goal_point = np.array([15, 15, -1, 1])                                          #  target x, y, z(directed down), yaw
 
 # for generator from points - use it for fourth opsion in trajectory planning //
 # init and goal point are requared, rest of values could be pasted randomly //
 # quantity of points in each path should be equal
-x_path = np.array([init_point[0], goal_point[0]])
-y_path = np.array([init_point[1], goal_point[1]])
-z_path = np.array([init_point[2], goal_point[2]])                       # note, z axis in body frame is directed down
-psi_path = np.array([init_point[3], goal_point[3]])
+x_path = np.array([init_point[0], 3, 6, 15, 3, 7, goal_point[0]])
+y_path = np.array([init_point[1], 6, 2, 10, 12 ,-2, goal_point[1]])
+z_path = np.array([init_point[2], 2, 3, 0, -2, 3, goal_point[2]])                       # note, z axis in body frame is directed down
+psi_path = np.array([init_point[3], 0.5, 1, 0.4, 0, 0, goal_point[3]])
 pathPoints = np.vstack((x_path, np.vstack((y_path, np.vstack((z_path, psi_path))))))
 
-########################################################
+#############################################################
 # begin of calculations
 
-######################## 
+############################################################ 
 print("Trajectory calculations...")
 # calculate path and trajectory // uncomment one of four options
 # when path is loaded from a file, note that time and time step are showed at the end of file name - T and ts in simulation at the begin of code shoud be same
 
 # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts, init_point, plots=True)
 # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, init_point, goal_point, save=False, plots=False)
-p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212449_T50ts0_01.csv', plots=True)
-# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromPoints(T, ts, pathPoints, plots=True)
+# p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212449_T50ts0_01.csv', plots=False)
+p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromPoints(T, ts, pathPoints, plots=True)
 
-print("Trajectory is found...")
-#########################
-print("Simulation...")
+print("Trajectory is found")
+##############################################################
+print("Start a simulation")
 for i in range(0, int(T/ts)):
 
+    # helped parameters
     R_now = R[3*i:3*i+3]
     omega_now = omega[i]
 
-    # geometric tracking controller // if full GT-CTRL calculate_omega_d = True, if simlified GT-CTRL calculate_omega_d = False
-    u_now, tau_now = gt(p[i], p_dot[i],\
-        p_d[i], p_d_dot[i], p_d_2dot[i], p_d_3dot[i], p_d_4dot[i], \
-        psi_d[i], psi_d_dot[i], psi_d_2dot[i], \
-        omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=True)
+    if controller == 1:
+        # geometric tracking controller // if full GT-CTRL calculate_omega_d = True, if simlified GT-CTRL calculate_omega_d = False
+        u_now, tau_now = gt(p[i], p_dot[i],\
+            p_d[i], p_d_dot[i], p_d_2dot[i], p_d_3dot[i], p_d_4dot[i], \
+            psi_d[i], psi_d_dot[i], psi_d_2dot[i], \
+            omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=True)
+    
+    elif controller == 2:
+        # near-hovering conntroller and integration of position error
+        u_now, tau_now, e_p_now = nh(p[i], p_dot[i],\
+            p_d[i], p_d_dot[i], p_d_2dot[i], psi_d[i],\
+                eta[i], omega[i], e_I[i], \
+                    m, J, g, kd, kp, ki, k_psi, K_eta, K_eta_dot,\
+                        max_pos_err_norm, max_tilt)
+        
+        # stack position error; integrate position error; stack integral 
+        e_p = np.vstack([e_p,e_p_now.reshape(1,3)])
+        e_I_next = e_I[i] + np.trapz(np.array([e_p[i],e_p[i+1]]), dx=ts, axis = 0)
+        e_I = np.vstack((e_I, e_I_next))
 
     # stack thrust and torque
     u = np.append(u,u_now)
@@ -106,8 +147,7 @@ for i in range(0, int(T/ts)):
 
     ## omega
     # stack omega_dot
-    omega_dot = np.vstack((omega_dot, omega_dot_next.reshape(1,3).squeeze()))
-
+    omega_dot = np.vstack((omega_dot, omega_dot_next))
     # integration of omega_dot, i.e. get omega; stack omega
     omega_next = omega[i] + np.trapz(np.array([omega_dot[i],omega_dot[i+1]]), dx=ts, axis = 0)
     omega = np.vstack((omega, omega_next))
@@ -120,7 +160,16 @@ for i in range(0, int(T/ts)):
     R_next = R[3*i:3*i+3].reshape(9) + np.trapz(np.array([R_dot[3*i:3*i+3].reshape(9), R_dot[3*(i+1):3*(i+1)+3].reshape(9)]), dx=ts, axis = 0)
     R_next = R_next.reshape(3,3)
     R = np.vstack((R, np.array(R_next)))
-    
+
+    # show progress in terminal
+    five_percent = 0.05*int(T/ts)
+    if i%five_percent == 0:
+        title = str(i*5/five_percent)  + "% done"
+        print(title, end="\r")
+
+print("Simulation completed")
+
+################################################
 # square errors
 p_error = np.sqrt(np.square(p_d - p))
 psi_error = np.sqrt(np.square(psi_d - eta[:,2]))
@@ -132,7 +181,7 @@ print('median velocity =', np.median(np.sqrt(np.square(p_dot[:,0]) + np.square(p
 
 ################################################
 ## ploting // all plots are in world frame
-# Plot actual path (it shows above desired path, when ploting in grajectory generator in swiched on) 
+# plot actual path (it shows above desired path, when ploting in grajectory generator in swiched on) 
 plt.figure(1)
 plt.title('Path')
 plt.plot(p[:,0],p[:,1], '-y', label='real path')
@@ -142,7 +191,6 @@ plt.legend(loc='upper left')
 
 # plot actual path; separated displacement in x,y,z; 3D velocity; 3D acceleration
 fig2 = plt.figure(2)
-plt.subplot(221)
 ax = fig2.add_subplot(221, projection='3d')
 ax.plot3D(p[:,0], p[:,1], -p[:,2], 'b')
 plt.title('3D-path')

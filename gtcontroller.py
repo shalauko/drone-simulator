@@ -8,32 +8,31 @@ def gt_controller(p, p_dot, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, \
     e3 = np.array([0,0,1])
     omega_s =np.array([0, -omega[2], omega[1], omega[2], 0, -omega[0], -omega[1], omega[0], 0]).reshape(3,3)
 
-    # error in position and velosity
-    e_p = p - p_d
-    e_p_dot = p_dot - p_d_dot
-
+    e_p = p - p_d                                                                   # position error
+    e_p_dot = p_dot - p_d_dot                                                       # velocity error
 
     x_c = np.array([np.cos(psi_d), np.sin(psi_d), 0])
 
     A = -Kp*e_p - Kv*e_p_dot - m*g*e3 + m*p_d_2dot                                  # temporary variable
     z_d_B = - A/LA.norm(A)
-    B = np.cross(z_d_B, x_c)               # temporary variable
+    B = np.cross(z_d_B, x_c)                                                        # temporary variable
     x_d_B = np.cross(B, z_d_B) / LA.norm(B)
     y_d_B = np.cross(z_d_B, x_d_B)
-    R_d = np.vstack([x_d_B, np.vstack([y_d_B, z_d_B])]).transpose()
+    R_d = np.vstack([x_d_B, np.vstack([y_d_B, z_d_B])]).transpose()                 # desired rotation matrix
     
-    # steering thrust
+    ##################################################
+    #  steering thrust
     u = - A @ (R@e3)
 
-    ## computations for steering torques
+    ##################################################
+    #  computations for steering torques
     if calculate_omega_d == False:
         omega_d = np.zeros(3)
         omega_d_dot = np.zeros(3)
 
     elif calculate_omega_d == True:
-        e3 = np.array([0,0,1])
-        t1 = np.array([-np.sin(psi_d), np.cos(psi_d), 0])
-        t2 = np.array([-np.cos(psi_d), np.sin(psi_d), 0])
+        t1 = np.array([-np.sin(psi_d), np.cos(psi_d), 0])       # temporary, helped value
+        t2 = np.array([-np.cos(psi_d), np.sin(psi_d), 0])       # temporary, helped value
         x_c_dot = psi_d_dot * t1
         x_c_2dot = psi_d_2dot * t1 + (psi_d_dot**2) * t2
 
@@ -71,16 +70,16 @@ def gt_controller(p, p_dot, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, \
         R_d_dot = np.vstack([x_d_B_dot, np.vstack([y_d_B_dot, z_d_B_dot])]).transpose()
         R_d_2dot = np.vstack([x_d_B_2dot, np.vstack([y_d_B_2dot, z_d_B_2dot])]).transpose()
 
-        omega_d_matrix = R_d.transpose() @ R_d_dot
-        omega_d = np.array([omega_d_matrix[2,1], omega_d_matrix[0,2], omega_d_matrix[1,0]])
+        omega_d_matrix = R_d.transpose() @ R_d_dot                                                              # desired angular velocity (omega)
+        omega_d = np.array([omega_d_matrix[2,1], omega_d_matrix[0,2], omega_d_matrix[1,0]])                     # omega wedge
 
-        omega_d_dot_matrix = R_d.transpose()@R_d_2dot - omega_d_matrix**2
-        omega_d_dot = np.array([omega_d_dot_matrix[2,1], omega_d_dot_matrix[0,2], omega_d_dot_matrix[1,0]])
+        omega_d_dot_matrix = R_d.transpose()@R_d_2dot - omega_d_matrix**2                                       # desired angular acceleration (omega_dot)
+        omega_d_dot = np.array([omega_d_dot_matrix[2,1], omega_d_dot_matrix[0,2], omega_d_dot_matrix[1,0]])     # omega_dot wedge
 
     # error in rotation matrix
-    t3 = (R_d.transpose() @ R - R.transpose() @ R_d)                # temporary
-    t3_vec = np.array([t3[2,1], t3[0,2], t3[1,0]])                  # temporary
-    e_R = 0.5 * t3_vec
+    t3 = (R_d.transpose() @ R - R.transpose() @ R_d)                # temporary // error in rotation matrix (step1)
+    t3_vec = np.array([t3[2,1], t3[0,2], t3[1,0]])                  # temporary // error in rotation matrix (step2)
+    e_R = 0.5 * t3_vec                                              # error in rotation matrix (step3)
 
     # error in angular velocity
     e_omega = omega - R.transpose() @ R_d @ omega_d

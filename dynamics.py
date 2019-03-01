@@ -22,7 +22,7 @@ def simulateDynamics(u, tau, R, omega, m, J, g=9.81, \
     psi = np.arctan2(R[1][0],R[0][0])
     eta=np.array([[phi], [theta], [psi]])
 
-    return p_2dot, eta, R_dot, omega_dot
+    return p_2dot, eta, R_dot, omega_dot.reshape(1,3)
 
 if __name__ == "__main__":
     simulateDynamics(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5],sys.argv[6])

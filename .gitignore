@@ -12,3 +12,4 @@ trajectory_planner/__pycache__/RRT.cpython-37.pyc
 trajectory_planner/__pycache__/interpolation.cpython-37.pyc
 __pycache__/dynamics.cpython-37.pyc
 __pycache__/gtcontroller.cpython-37.pyc
+__pycache__/nhcontroller.cpython-37.pyc

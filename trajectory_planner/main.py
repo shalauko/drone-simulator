@@ -93,8 +93,8 @@ def getTrajectoryFromStep(T,ts, init_point, plots=True):
     # psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
     ##########################################################################
-    # without trajectory planning - just hard step function
-    p = np.array([np.ones_like(time),np.ones_like(time),np.ones_like(time)]).transpose()
+    # without trajectory planning - just hard step function // minus in z axis becouse here is body frame, but we need one in world frame
+    p = np.array([np.ones_like(time),np.ones_like(time),-np.ones_like(time)]).transpose()
     p_dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
     p_2dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
     p_3dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
