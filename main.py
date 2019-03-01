@@ -9,7 +9,7 @@ from nhcontroller import nh_controller as nh
 def main():
     #############################################
     # which controller do you want to use (GT = 1 or NH = 2); set what do you want
-    controller = 1
+    controller = 2
     if controller == 1: print('GEOMETRIC TRACKING CONTROLLER')
     elif controller == 2: print('NEAR-HOVERING CONTROLLER')
 
@@ -71,14 +71,14 @@ def main():
     ######################################################
     # points in the space for path and trajectory planning
     init_point = np.array([p[0,0], p[0,1], p[0,2], eta[0,2]])                       # init x, y, z, yaw
-    goal_point = np.array([15, 15, -1, 1])                                          #  target x, y, z(directed down), yaw
+    goal_point = np.array([15, 15, -1, 1])                                           #  target x, y, z(directed down), yaw
 
     # for generator from points - use it for fourth opsion in trajectory planning //
     # init and goal point are requared, rest of values could be pasted randomly //
     # quantity of points in each path should be equal
     x_path = np.array([init_point[0], 3, 6, 15, 3, 7, goal_point[0]])
-    y_path = np.array([init_point[1], 6, 2, 10, 12 ,-2, goal_point[1]])
-    z_path = np.array([init_point[2], 2, 3, 0, -2, 3, goal_point[2]])                       # note, z axis in body frame is directed down
+    y_path = np.array([init_point[1], 6, 2, 10, 12 , 1.5, goal_point[1]])
+    z_path = np.array([init_point[2], -2, -3, 0, 1, -3, goal_point[2]])                       # z axis is directed down
     psi_path = np.array([init_point[3], 0.5, 1, 0.4, 0, 0, goal_point[3]])
     pathPoints = np.vstack((x_path, np.vstack((y_path, np.vstack((z_path, psi_path))))))
 
@@ -90,10 +90,10 @@ def main():
     # calculate path and trajectory // uncomment one of four options
     # when path is loaded from a file, note that time and time step are showed at the end of file name - T and ts in simulation at the begin of code shoud be same
 
-    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts, init_point, plots=True)
-    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, init_point, goal_point, save=False, plots=True)
-    p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212533_T50ts0_01.csv', plots=False)
-    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromPoints(T, ts, pathPoints, plots=True)
+    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts, init_point, to_plot=True)
+    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, init_point, goal_point, save=False, to_plot=True)
+    p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212533_T50ts0_01.csv', to_plot=True)
+    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromPoints(T, ts, pathPoints, to_plot=True)
 
     print("Trajectory is found")
     ##############################################################
@@ -181,8 +181,25 @@ def main():
     print('median velocity =', np.median(np.sqrt(np.square(p_dot[:,0]) + np.square(p_dot[:,1]) + np.square(p_dot[:,2]))))
 
     ################################################
-    ## ploting // all plots are in world frame
-    # plot actual path (it shows above desired path, when ploting in grajectory generator in swiched on) 
+    ## ploting // note, axes in world and  body frames are directed in same direction (NED), 
+    # but for esthetic reason at plots are inversed
+    plotPath(t, p)                                                          # plot actual path (it shows above desired path, 
+                                                                            # when ploting in grajectory generator in swiched on)
+    plotPosition(t, p, p_dot, p_2dot)                                       # plot actual path in 3D; separated displacement in x,y,z; 3D velocity; 3D acceleration
+    plotErrors(t, p_error, psi_error)                                       # plot errors
+    plotDesiredVsActual(t, p, p_d, eta[:,2],  psi_d)                        # plot position and yaw, desired vs actual
+
+    ##  some additional plots
+    # plotTrajectories(t, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, psi_d, psi_d_dot, psi_d_2dot)
+    # plotPosVelAcc(t, p, p_dot, p_2dot, p_d, p_d_dot, p_d_2dot)              # plot displacement, velocity, aceleration at x,y,z; actual values vs desired
+    # plotTorques(t,tau)
+    # plotThrust(t,u)
+    # plotRollAndPith(t,eta)
+    plt.show()
+
+#######################################################
+# functions
+def plotPath(t, p):
     plt.figure(1)
     plt.title('Path')
     plt.plot(p[:,0],p[:,1], '-y', label='real path')
@@ -190,10 +207,11 @@ def main():
     plt.ylabel('y [m]')
     plt.legend(loc='upper left')
 
-    # plot actual path; separated displacement in x,y,z; 3D velocity; 3D acceleration
+
+def plotPosition(t, p, p_dot, p_2dot):
     fig2 = plt.figure(2)
     ax = fig2.add_subplot(221, projection='3d')
-    ax.plot3D(p[:,0], p[:,1], -p[:,2], 'b')
+    ax.plot3D( p[:,1], p[:,0], -p[:,2], 'b')              # order is mixed becoue of axes inversion NED->classic world frame (x_ned = y_wf, y_ned = x_wf, z_ned = z_wf)
     plt.title('3D-path')
     ax.set_xlabel('x [m]')
     ax.set_ylabel('y [m]')
@@ -218,7 +236,7 @@ def main():
     plt.ylabel('[m/s^2]')
     plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
 
-    # plot errors
+def plotErrors(t, p_error, psi_error):
     plt.figure(3)
     plt.subplot(221)
     plt.title('x-error')
@@ -237,14 +255,14 @@ def main():
     plt.ylabel('[m]')
     plt.subplot(224)
     plt.title('3D-error and yaw error')
-    plt.plot(t, np.sqrt(np.sum(np.square(p_error), axis=1)), 'b', label="position error [m]")
-    plt.plot(t, psi_error, 'r', label="yaw error [deg]")
+    plt.plot(t, np.sqrt(np.sum(np.square(p_error) * 180/np.pi, axis=1)), 'b', label="position error [m]")
+    plt.plot(t, psi_error * 180/np.pi, 'r', label="yaw error [deg]")
     plt.xlabel('time [s]')
     plt.ylabel('[m] or [deg]')
     plt.legend(loc='upper right')
     plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
 
-    # plot position and yaw, desired vs actual
+def plotDesiredVsActual(t, p, p_d, psi, psi_d):
     fig5 = plt.figure(5)
     plt.subplot(221)
     plt.title('x-position')
@@ -266,91 +284,128 @@ def main():
     plt.ylabel('[m]')
     plt.subplot(224)
     plt.title('yaw')
-    plt.plot(t, psi_d, 'g')
-    plt.plot(t, eta[:,2], 'r')
+    plt.plot(t, psi_d * 180/np.pi, 'g')
+    plt.plot(t, psi * 180/np.pi, 'r')
     plt.xlabel('time [s]')
     plt.ylabel('[deg]')
 
     fig5.legend(loc='upper left')
     plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
 
-    ########################################################################
-    #  some additional plots
-    # plot displacement, velocity, aceleration at x,y,z; actual values vs desired
-    # fig = plt.figure(5)
-    # plt.subplot(331)
-    # plt.title('x-position')
-    # plt.plot(t, p_d[:,0], 'g', label="desired value")
-    # plt.plot(t, p[:,0], 'r', label="real value")
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m]')
-    # plt.subplot(332)
-    # plt.title('x-velocity')
-    # plt.plot(t, p_d_dot[:,0], 'g')
-    # plt.plot(t, p_dot[:,0], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m/s]')
-    # plt.subplot(333)
-    # plt.title('x-acceleration')
-    # plt.plot(t, p_d_2dot[:,1], 'g')
-    # plt.plot(t, p_2dot[:,1], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m/s^2]')
-    # plt.subplot(334)
-    # plt.title('y-position')
-    # plt.plot(t, p_d[:,1], 'g')
-    # plt.plot(t, p[:,1], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m]')
-    # plt.subplot(335)
-    # plt.title('y-velocity')
-    # plt.plot(t, p_d_dot[:,1], 'g')
-    # plt.plot(t, p_dot[:,1], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m/s]')
-    # plt.subplot(336)
-    # plt.title('y-acceleration')
-    # plt.plot(t, p_d_2dot[:,1], 'g')
-    # plt.plot(t, p_2dot[:,1], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m/s^2]')
-    # plt.subplot(337)
-    # plt.title('z-position')
-    # plt.plot(t, -p_d[:,2], 'g')
-    # plt.plot(t, -p[:,2], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m]')
-    # plt.subplot(338)
-    # plt.title('z-velocity')
-    # plt.plot(t, -p_d_dot[:,2], 'g')
-    # plt.plot(t, -p_dot[:,2], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m/s]')
-    # plt.subplot(339)
-    # plt.title('z-acceleration')
-    # plt.plot(t, -p_d_2dot[:,2], 'g')
-    # plt.plot(t, -p_2dot[:,2], 'r')
-    # plt.xlabel('time [s]')
-    # plt.ylabel('[m]')
-    # fig.legend(loc='upper left')
-    # plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
+def plotTrajectories(t, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, psi_d, psi_d_dot, psi_d_2dot):
+    fig = plt.figure(100)
+    plt.subplot(221)
+    plt.title("desired trajectory for x")
+    plt.plot(t, p_d[:,0], 'b', label='position')
+    plt.plot(t, p_d_dot[:,0], 'g', label='velocity')
+    plt.plot(t, p_d_2dot[:,0], 'r', label='acceleration')
+    plt.plot(t, p_d_3dot[:,0], 'm', label='jerk')
+    plt.plot(t, p_d_4dot[:,0], 'c', label='snap')
+    plt.subplot(222)
+    plt.title("desired trajectory for y")
+    plt.plot(t, p_d[:,1], 'b')
+    plt.plot(t, p_d_dot[:,1], 'g')
+    plt.plot(t, p_d_2dot[:,1], 'r')
+    plt.plot(t, p_d_3dot[:,1], 'm')
+    plt.plot(t, p_d_4dot[:,1], 'c')
+    plt.subplot(223)
+    plt.title("desired trajectory for z")
+    plt.plot(t, -p_d[:,2], 'b')
+    plt.plot(t, -p_d_dot[:,2], 'g')
+    plt.plot(t, -p_d_2dot[:,2], 'r')
+    plt.plot(t, -p_d_3dot[:,2], 'm')
+    plt.plot(t, -p_d_4dot[:,2], 'c')
+    plt.subplot(224)
+    plt.title("desired trajectory for yaw")
+    plt.plot(t, psi_d, 'b')
+    plt.plot(t, psi_d_dot, 'g')
+    plt.plot(t, psi_d_2dot, 'r')
+    fig.legend(loc='upper left')
+    plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
 
-    # plt.figure(11)
-    # plt.title('steering torques')
-    # plt.plot(t, tau[:,0], 'b')
-    # plt.plot(t, tau[:,1], 'g')
-    # plt.plot(t, tau[:,2], 'r')
+def plotPosVelAcc(t, p, p_dot, p_2dot, p_d, p_d_dot, p_d_2dot):
+    fig = plt.figure(10)
+    plt.subplot(331)
+    plt.title('x-position')
+    plt.plot(t, p_d[:,0], 'g', label="desired value")
+    plt.plot(t, p[:,0], 'r', label="real value")
+    plt.xlabel('time [s]')
+    plt.ylabel('[m]')
+    plt.subplot(332)
+    plt.title('x-velocity')
+    plt.plot(t, p_d_dot[:,0], 'g')
+    plt.plot(t, p_dot[:,0], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m/s]')
+    plt.subplot(333)
+    plt.title('x-acceleration')
+    plt.plot(t, p_d_2dot[:,1], 'g')
+    plt.plot(t, p_2dot[:,1], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m/s^2]')
+    plt.subplot(334)
+    plt.title('y-position')
+    plt.plot(t, p_d[:,1], 'g')
+    plt.plot(t, p[:,1], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m]')
+    plt.subplot(335)
+    plt.title('y-velocity')
+    plt.plot(t, p_d_dot[:,1], 'g')
+    plt.plot(t, p_dot[:,1], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m/s]')
+    plt.subplot(336)
+    plt.title('y-acceleration')
+    plt.plot(t, p_d_2dot[:,1], 'g')
+    plt.plot(t, p_2dot[:,1], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m/s^2]')
+    plt.subplot(337)
+    plt.title('z-position')
+    plt.plot(t, -p_d[:,2], 'g')
+    plt.plot(t, -p[:,2], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m]')
+    plt.subplot(338)
+    plt.title('z-velocity')
+    plt.plot(t, -p_d_dot[:,2], 'g')
+    plt.plot(t, -p_dot[:,2], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m/s]')
+    plt.subplot(339)
+    plt.title('z-acceleration')
+    plt.plot(t, -p_d_2dot[:,2], 'g')
+    plt.plot(t, -p_2dot[:,2], 'r')
+    plt.xlabel('time [s]')
+    plt.ylabel('[m]')
+    fig.legend(loc='upper left')
+    plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
 
-    # plt.figure(12)
-    # plt.title('thrust')
-    # plt.plot(t, u, 'b')
+def plotTorques(t,tau):
+    fig =  plt.figure(11)
+    plt.title('steering torques')
+    plt.plot(t, tau[:,0], 'b', label = 'x')
+    plt.plot(t, tau[:,1], 'g', label = 'y')
+    plt.plot(t, tau[:,2], 'r', label = 'z')
+    plt.xlabel('time [s]')
+    plt.ylabel('[Nm]')
+    fig.legend(loc='upper left')
 
-    # plt.figure(13)
-    # plt.title('Roll and pitch')
-    # plt.plot(t, eta[:,0], 'b')
-    # plt.plot(t, eta[:,1], 'b')
+def plotThrust(t,u):
+    plt.figure(12)
+    plt.title('thrust')
+    plt.plot(t, u, 'b')
+    plt.xlabel('time [s]')
+    plt.ylabel('[N]')
 
-    plt.show()
+def plotRollAndPith(t,eta):
+    plt.figure(13)
+    plt.title('Roll and pitch')
+    plt.plot(t, eta[:,0] * 180/np.pi, 'b', label = 'roll')
+    plt.plot(t, eta[:,1] * 180/np.pi, 'g', label = 'pith')
+    plt.xlabel('time [s]')
+    plt.ylabel('[deg]')
 
 if __name__ == "__main__":
     main()

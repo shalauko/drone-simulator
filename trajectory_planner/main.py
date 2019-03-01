@@ -15,13 +15,13 @@ max_length = 0.5
 max_steps = 2000
 
 
-def getTrajectoryFromRRT(T,ts, init_point, goal_point, save=True, plots=True):
+def getTrajectoryFromRRT(T,ts, init_point, goal_point, save=True, to_plot=True):
     time = np.linspace(0, T, T/ts+1)
 
     init_p = Point(init_point[0],init_point[1]) #for RRT for x,y
     goal_p = Point(goal_point[0],goal_point[1]) #for RRT for x,y
 
-    tree_x, tree_y = find_path(init_p, goal_p, size_of_map, max_length, max_steps, plots=plots)
+    tree_x, tree_y = find_path(init_p, goal_p, size_of_map, max_length, max_steps, to_plot=to_plot)
     if tree_x == [] or tree_y == []:
         sys.exit("Error in the RRT")
 
@@ -40,14 +40,14 @@ def getTrajectoryFromRRT(T,ts, init_point, goal_point, save=True, plots=True):
     z = trajectory(time, interp_z, init_point[2])
     yaw = yawtrajectory(time, interp_psi, init_point[3])
     
-    if plots==True : plottrajectories(T,ts, x, y, z, yaw)
+    if to_plot==True : plotPath(T,ts, x, y, z, yaw)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
     return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def getTrajectoryFromFile(T, ts, filename, plots=True):
+def getTrajectoryFromFile(T, ts, filename, to_plot=True):
     time = np.linspace(0, T, T/ts+1)
 
     data = np.loadtxt(filename, delimiter=',')
@@ -61,7 +61,7 @@ def getTrajectoryFromFile(T, ts, filename, plots=True):
     z = trajectory(time, z_path, z_path[0])
     yaw = yawtrajectory(time, yaw_path, yaw_path[0])
     
-    if plots==True:
+    if to_plot==True:
         plt.figure(1)
         plt.title("Loaded path")
         plt.scatter(x_path[0], y_path[0])
@@ -69,14 +69,14 @@ def getTrajectoryFromFile(T, ts, filename, plots=True):
         plt.plot(x_path,y_path, c='b', label='desired path')
         plt.show(block=False)
 
-        plottrajectories(T,ts, x, y, z, yaw)
+        plotPath(T,ts, x, y, z, yaw)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
     return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def getTrajectoryFromStep(T,ts, init_point, plots=True):
+def getTrajectoryFromStep(T,ts, init_point, to_plot=True):
     time = np.linspace(0, T, T/ts+1)
 
     # uncomment one of two parts below
@@ -87,13 +87,13 @@ def getTrajectoryFromStep(T,ts, init_point, plots=True):
     # z = trajectory(time, np.ones_like(time), init_point[2])
     # yaw = yawtrajectory(time, np.ones_like(time), init_point[3])
 
-    # if plots==True: plottrajectories(T,ts, x, y, z, yaw)
+    # if to_plot==True: plotPath(T,ts, x, y, z, yaw)
 
     # p, p_dot, p_2dot, p_3dot, p_4dot = repack(x,y,z)
     # psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
     ##########################################################################
-    # without trajectory planning - just hard step function // minus in z axis becouse here is body frame, but we need one in world frame
+    # without trajectory planning - just hard step function // minus in z axis becouse it's down directed
     p = np.array([np.ones_like(time),np.ones_like(time),-np.ones_like(time)]).transpose()
     p_dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
     p_2dot = np.array([np.zeros_like(time),np.zeros_like(time),np.zeros_like(time)]).transpose()
@@ -105,7 +105,7 @@ def getTrajectoryFromStep(T,ts, init_point, plots=True):
 
     return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def getTrajectoryFromPoints(T, ts, points, plots=True):
+def getTrajectoryFromPoints(T, ts, points, to_plot=True):
     time = np.linspace(0, T, T/ts+1)
 
     interp_x = interpolate(time, points[0,:], stab_time=stab_time)
@@ -118,60 +118,26 @@ def getTrajectoryFromPoints(T, ts, points, plots=True):
     z = trajectory(time, interp_z, points[2,0])
     yaw = yawtrajectory(time, interp_psi, points[3,0])
     
-    if plots==True : 
+    if to_plot==True : 
         plt.figure(1)
         plt.title("Loaded path")
         plt.scatter(points[0,-1], points[1,-1], c='r')
         plt.scatter(points[0,0], points[1,0])
         plt.plot(points[0],points[1], label='desired path')
         plt.show(block=False)
-        plottrajectories(T,ts, x, y, z, yaw)
+        plotPath(T,ts, x, y, z, yaw)
 
     p, p_dot, p_2dot, p_3dot ,p_4dot = repack(x,y,z)
     psi, psi_dot, psi_2dot = yaw[0,:], yaw[1,:], yaw[2,:]
 
     return p, p_dot, p_2dot, p_3dot ,p_4dot, psi, psi_dot, psi_2dot
 
-def plottrajectories(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi):
-    time = np.linspace(0, T, T/ts+1)
-
+def plotPath(T,ts, trajectory_x, trajectory_y, trajectory_z, trajectory_psi):
     plt.ioff()
     plt.figure(1)
     plt.title("Desired trajectory")
     plt.axis([0, size_of_map.x, 0, size_of_map.y])
     plt.plot(trajectory_x[0,:],trajectory_y[0,:], 'm', label="filtered path")
-    plt.show(block=False)
-
-    fig = plt.figure(100)
-    plt.subplot(221)
-    plt.title("desired trajectory for x")
-    plt.plot(time, trajectory_x[0,:], label='position')
-    plt.plot(time, trajectory_x[1,:], label='velocity')
-    plt.plot(time, trajectory_x[2,:], label='acceleration')
-    plt.plot(time, trajectory_x[3,:], label='jerk')
-    plt.plot(time, trajectory_x[4,:], label='snap')
-    plt.subplot(222)
-    plt.title("desired trajectory for y")
-    plt.plot(time, trajectory_y[0,:])
-    plt.plot(time, trajectory_y[1,:])
-    plt.plot(time, trajectory_y[2,:])
-    plt.plot(time, trajectory_y[3,:])
-    plt.plot(time, trajectory_y[4,:])
-    plt.subplot(223)
-    plt.title("desired trajectory for z")
-    plt.plot(time, trajectory_z[0,:])
-    plt.plot(time, trajectory_z[1,:])
-    plt.plot(time, trajectory_z[2,:])
-    plt.plot(time, trajectory_z[3,:])
-    plt.plot(time, trajectory_z[4,:])
-    plt.gca().invert_yaxis()
-    plt.subplot(224)
-    plt.title("desired trajectory for yaw")
-    plt.plot(time, trajectory_psi[0,:])
-    plt.plot(time, trajectory_psi[1,:])
-    plt.plot(time, trajectory_psi[2,:])
-    fig.legend(loc='upper left')
-    plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
     plt.show(block=False)
 
 def repack(x,y,z):
