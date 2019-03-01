@@ -9,9 +9,12 @@ from nhcontroller import nh_controller as nh
 def main():
     #############################################
     # which controller do you want to use (GT = 1 or NH = 2); set what do you want
-    controller = 2
+    controller = 1
     if controller == 1: print('GEOMETRIC TRACKING CONTROLLER')
     elif controller == 2: print('NEAR-HOVERING CONTROLLER')
+    #############################################
+    # Which GT_CTRL do you want to use. For full calculate_omega_d=True, for simplified =False
+    calculate_omega_d = False
 
     #############################################
     # time step, time of simulation and timevector
@@ -91,8 +94,8 @@ def main():
     # when path is loaded from a file, note that time and time step are showed at the end of file name - T and ts in simulation at the begin of code shoud be same
 
     # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromStep(T, ts, init_point, to_plot=True)
-    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, init_point, goal_point, save=False, to_plot=True)
-    p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212533_T50ts0_01.csv', to_plot=True)
+    p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromRRT(T, ts, init_point, goal_point, save=False, to_plot=True)
+    # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromFile(T, ts, 'trajectories/20190227_212533_T50ts0_01.csv', to_plot=True)
     # p_d, p_d_dot, p_d_2dot, p_d_3dot ,p_d_4dot, psi_d, psi_d_dot, psi_d_2dot = tp.getTrajectoryFromPoints(T, ts, pathPoints, to_plot=True)
 
     print("Trajectory is found")
@@ -109,7 +112,7 @@ def main():
             u_now, tau_now = gt(p[i], p_dot[i],\
                 p_d[i], p_d_dot[i], p_d_2dot[i], p_d_3dot[i], p_d_4dot[i], \
                 psi_d[i], psi_d_dot[i], psi_d_2dot[i], \
-                omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=False)
+                omega_now, R_now, m, J, g, Kp, Kv, K_R, K_omega, calculate_omega_d=calculate_omega_d)
         
         elif controller == 2:
             # near-hovering conntroller and integration of position error
@@ -182,14 +185,15 @@ def main():
 
     ################################################
     ## ploting // note, axes in world and  body frames are directed in same direction (NED), 
-    # but for esthetic reason at plots are inversed
+    # but for esthetic reason at plots are inverted
     plotPath(t, p)                                                          # plot actual path (it shows above desired path, 
                                                                             # when ploting in grajectory generator in swiched on)
     plotPosition(t, p, p_dot, p_2dot)                                       # plot actual path in 3D; separated displacement in x,y,z; 3D velocity; 3D acceleration
-    plotErrors(t, p_error, psi_error)                                       # plot errors
+    plot3DErrorAndYaw(t, p_error, psi_error)                                # plot 3D and yaw errors
     plotDesiredVsActual(t, p, p_d, eta[:,2],  psi_d)                        # plot position and yaw, desired vs actual
 
     ##  some additional plots
+    # plotErrors(t, p_error, psi_error)                                       # plot errors on separated axes
     # plotTrajectories(t, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, psi_d, psi_d_dot, psi_d_2dot)
     # plotPosVelAcc(t, p, p_dot, p_2dot, p_d, p_d_dot, p_d_2dot)              # plot displacement, velocity, aceleration at x,y,z; actual values vs desired
     # plotTorques(t,tau)
@@ -211,7 +215,7 @@ def plotPath(t, p):
 def plotPosition(t, p, p_dot, p_2dot):
     fig2 = plt.figure(2)
     ax = fig2.add_subplot(221, projection='3d')
-    ax.plot3D( p[:,1], p[:,0], -p[:,2], 'b')              # order is mixed becoue of axes inversion NED->classic world frame (x_ned = y_wf, y_ned = x_wf, z_ned = z_wf)
+    ax.plot3D( p[:,1], p[:,0], -p[:,2], 'b')              # order is mixed becoue of axes inversion NED->classic world frame (y_wf = x_ned, x_wf = y_ned, z_wf = -z_ned)
     plt.title('3D-path')
     ax.set_xlabel('x [m]')
     ax.set_ylabel('y [m]')
@@ -255,12 +259,21 @@ def plotErrors(t, p_error, psi_error):
     plt.ylabel('[m]')
     plt.subplot(224)
     plt.title('3D-error and yaw error')
-    plt.plot(t, np.sqrt(np.sum(np.square(p_error) * 180/np.pi, axis=1)), 'b', label="position error [m]")
+    plt.plot(t, np.sqrt(np.sum(np.square(p_error), axis=1)), 'b', label="position error [m]")
     plt.plot(t, psi_error * 180/np.pi, 'r', label="yaw error [deg]")
     plt.xlabel('time [s]')
     plt.ylabel('[m] or [deg]')
     plt.legend(loc='upper right')
     plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
+
+def plot3DErrorAndYaw(t, p_error, psi_error):
+    plt.figure(4)
+    plt.title('3D-error and yaw error')
+    plt.plot(t, np.sqrt(np.sum(np.square(p_error), axis=1)), 'b', label="position error [m]")
+    plt.plot(t, psi_error * 180/np.pi, 'r', label="yaw error [deg]")
+    plt.xlabel('time [s]')
+    plt.ylabel('[m] or [deg]')
+    plt.legend(loc='upper right')
 
 def plotDesiredVsActual(t, p, p_d, psi, psi_d):
     fig5 = plt.figure(5)
@@ -290,7 +303,7 @@ def plotDesiredVsActual(t, p, p_d, psi, psi_d):
     plt.ylabel('[deg]')
 
     fig5.legend(loc='upper left')
-    plt.subplots_adjust(left=0.06, right=0.99, bottom=0.07, top=0.96, wspace=0.28, hspace=0.5)
+    plt.subplots_adjust(wspace=0.28, hspace=0.5)
 
 def plotTrajectories(t, p_d, p_d_dot, p_d_2dot, p_d_3dot, p_d_4dot, psi_d, psi_d_dot, psi_d_2dot):
     fig = plt.figure(100)
