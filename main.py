@@ -202,7 +202,7 @@ def main():
     plt.show()
 
 #######################################################
-# functions
+# plot functions
 def plotPath(t, p):
     plt.figure(1)
     plt.title('Path')
